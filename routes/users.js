@@ -1,5 +1,6 @@
 const express = require('express');
 const User = require('../models/user');
+const mongoose = require('mongoose');
 
 const router = express.Router();
 
@@ -55,6 +56,39 @@ router.get('/', async function (req, res) {
     } catch (err) {
         return res.status(500).json({
             message: 'Could not retrieve users.',
+            data: {}
+        });
+    }
+});
+
+// read user info by id
+router.get('/:id', async function (req, res) {
+    const id = req.params.id;
+
+    if (!mongoose.isObjectIdOrHexString(id)) {
+        return res.status(404).json({
+            message: 'User not found.',
+            data: {}
+        });
+    }
+
+    try {
+        const user = await User.findById(id);
+
+        if (!user) {
+            return res.status(404).json({
+                message: 'User not found.',
+                data: {}
+            });
+        }
+
+        return res.status(200).json({
+            message: 'OK',
+            data: user
+        });
+    } catch (err) {
+        return res.status(500).json({
+            message: 'Could not retrieve user.',
             data: {}
         });
     }
