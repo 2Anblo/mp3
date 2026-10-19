@@ -46,14 +46,109 @@ router.post('/', async function (req, res) {
 
 // read the user list
 router.get('/', async function (req, res) {
+    let where = {};
+    let sort = {};
+    let select = {};
+    let skip = 0;
+    let limit = 0; // In Mongoose that means unlimited
+    let count = false;
+
     try {
-        const users = await User.find();
+        if (req.query.where !== undefined) {
+            where = JSON.parse(req.query.where);
+        }
+        if (req.query.sort !== undefined) {
+            sort = JSON.parse(req.query.sort);
+        }
+        if (req.query.select !== undefined) {
+            select = JSON.parse(req.query.select);
+        }
+        if (req.query.skip !== undefined) {
+            skip = JSON.parse(req.query.skip);
+        }
+        if (req.query.limit !== undefined) {
+            limit = JSON.parse(req.query.limit);
+        }
+        if (req.query.count !== undefined) {
+            count = JSON.parse(req.query.count);
+        }
+    } catch (err) {
+        return res.status(400).json({
+            message: 'Query parameters must be valid JSON.',
+            data: {}
+        });
+    }
+
+    const isObject = value =>
+        value !== null &&
+        typeof value === 'object' &&
+        !Array.isArray(value);
+
+    if (
+        !isObject(where) ||
+        !isObject(sort) ||
+        !isObject(select) ||
+        !Number.isSafeInteger(skip) || skip < 0 ||
+        !Number.isSafeInteger(limit) || limit < 0 ||
+        typeof count !== 'boolean'
+    ) {
+        return res.status(400).json({
+            message: 'Invalid query parameter types or values.',
+            data: {}
+        });
+    }
+
+    if (!Object.values(sort).every(value => value === 1 || value === -1)) {
+        return res.status(400).json({
+            message: 'Sort values must be 1 or -1.',
+            data: {}
+        });
+    }
+
+    if (!Object.values(select).every(value => value === 0 || value === 1)) {
+        return res.status(400).json({
+            message: 'Select values must be 0 or 1.',
+            data: {}
+        });
+    }
+
+    const selectValues = Object.entries(select)
+        .filter(([key]) => key !== '_id')
+        .map(([, value]) => value);
+
+    if (selectValues.includes(0) && selectValues.includes(1)) {
+        return res.status(400).json({
+            message: 'Select cannot mix included and excluded fields.',
+            data: {}
+        });
+    }
+
+
+    try {
+        let data;
+
+        if (count) {
+            data = await User.countDocuments(where);
+        } else {
+            data = await User.find(where)
+                .sort(sort)
+                .select(select)
+                .skip(skip)
+                .limit(limit);
+        }
 
         return res.status(200).json({
             message: 'OK',
-            data: users
+            data
         });
     } catch (err) {
+        if (err.name === 'CastError' || err.name === 'StrictModeError') {
+            return res.status(400).json({
+                message: 'Invalid query field or value.',
+                data: {}
+            });
+        }
+
         return res.status(500).json({
             message: 'Could not retrieve users.',
             data: {}
