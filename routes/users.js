@@ -72,8 +72,44 @@ router.get('/:id', async function (req, res) {
         });
     }
 
+    let select;
+
+    if (req.query.select !== undefined) {
+        try {
+            select = JSON.parse(req.query.select);
+        } catch (err) {
+            return res.status(400).json({
+                message: 'Select must be valid JSON.',
+                data: {}
+            });
+        }
+
+        if (
+            select === null ||
+            typeof select !== 'object' ||
+            Array.isArray(select) ||
+            !Object.values(select).every(value => value === 0 || value === 1)
+        ) {
+            return res.status(400).json({
+                message: 'Select must be an object with values of 0 or 1.',
+                data: {}
+            });
+        }
+
+        const values = Object.entries(select)
+            .filter(([key]) => key !== '_id')
+            .map(([, value]) => value);
+
+        if (values.includes(0) && values.includes(1)) {
+            return res.status(400).json({
+                message: 'Select cannot mix included and excluded fields.',
+                data: {}
+            });
+        }
+    }
+
     try {
-        const user = await User.findById(id);
+        const user = await User.findById(id).select(select);
 
         if (!user) {
             return res.status(404).json({
