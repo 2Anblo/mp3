@@ -32,5 +32,20 @@ app.use(express.json());
 require('./routes')(app, router);
 
 // Start the server
-app.listen(port);
-console.log('Server running on port ' + port);
+// app.listen(port);
+// console.log('Server running on port ' + port);
+async function start() {
+    try {
+        await mongoose.connect(process.env.MONGODB_URI);
+        console.log('Connected to MongoDB');
+
+        app.listen(port, function () {
+            console.log('Server running on port ' + port);
+        });
+    } catch (err) {
+        console.error('Could not connect to MongoDB:', err.message);
+        process.exit(1);
+    }
+}
+
+start();
