@@ -30,6 +30,19 @@ app.use(express.json());
 
 // Use routes as a module (see index.js)
 require('./routes')(app, router);
+app.use(function (err, req, res, next) {
+    if (err.type === 'entity.parse.failed') {
+        return res.status(400).json({
+            message: 'Request body must be valid JSON.',
+            data: {}
+        });
+    }
+
+    return res.status(500).json({
+        message: 'An unexpected server error occurred.',
+        data: {}
+    });
+});
 
 // Start the server
 // app.listen(port);
