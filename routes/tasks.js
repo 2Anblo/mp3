@@ -330,10 +330,7 @@ router.delete('/:id', async function (req, res) {
             );
         });
 
-        return res.status(200).json({
-            message: 'Task deleted.',
-            data: {}
-        });
+        return res.status(204).end();
     } catch (err) {
         return res.status(err.status || 500).json({
             message: err.status ? err.message : 'Could not delete task.',
